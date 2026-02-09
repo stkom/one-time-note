@@ -1,0 +1,10 @@
+# User-specific files
+.idea/
+node_modules/
+one-time-note
+playwright-report/
+test-results/
+.env
+data.db
+go.work
+go.work.sum

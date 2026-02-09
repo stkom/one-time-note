@@ -1,0 +1,104 @@
+{{define "title"}}View Note - {{.Brand.DisplayName}}{{end}}
+{{define "body"}}
+    <div class="center-screen">
+        <article class="app-dialog" aria-labelledby="dialog-title">
+            <header class="dialog-header">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                        <path d="M12 14v3"></path>
+                    </svg>
+                </div>
+                <div class="brand-name">{{.Brand.DisplayName}}</div>
+            </header>
+
+            <noscript>
+                <div class="dialog-section">
+                    <div class="notice-panel notice-error" role="alert">
+                        <svg class="notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 8v5"></path>
+                            <path d="M12 16h.01"></path>
+                        </svg>
+                        <p>JavaScript and Web Crypto are required to decrypt notes in this browser.</p>
+                    </div>
+                </div>
+            </noscript>
+
+            <div id="note-confirmation" class="dialog-section form-stack" data-page="view-note">
+                <h1 id="dialog-title" class="section-title">View encrypted note</h1>
+                <div class="notice-panel notice-warning">
+                    <svg class="notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m12 4 9 16H3L12 4Z"></path>
+                        <path d="M12 9v5"></path>
+                        <path d="M12 17h.01"></path>
+                    </svg>
+                    <p>Opening this note will destroy it on the server.</p>
+                </div>
+                <button type="button" id="confirm-view-note" data-id="{{.ID}}" class="button button-primary">
+                    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                    </svg>
+                    <span class="button-label">View Note</span>
+                </button>
+                <a href="/" class="text-action">Cancel</a>
+            </div>
+
+            <div id="note-display" class="dialog-section form-stack hidden">
+                <h1 class="section-title">Your note</h1>
+                <textarea id="decrypted-content" rows="7" readonly aria-label="Your note"></textarea>
+                <button type="button" id="copy-note" class="button button-primary">
+                    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+                        <path d="M5 15V5h10"></path>
+                    </svg>
+                    <span class="button-label">Copy Note</span>
+                </button>
+                <button type="button" id="download-note" class="button button-secondary">
+                    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 3v12"></path>
+                        <path d="m7 10 5 5 5-5"></path>
+                        <path d="M5 21h14"></path>
+                    </svg>
+                    <span class="button-label">Download .txt</span>
+                </button>
+                <a href="/" class="text-action">Home</a>
+            </div>
+
+            <div id="note-error" class="dialog-section form-stack hidden" tabindex="-1">
+                <h1 class="section-title">Unable to open note</h1>
+                <div class="notice-panel notice-error">
+                    <svg class="notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 8v5"></path>
+                        <path d="M12 16h.01"></path>
+                    </svg>
+                    <p id="error-message"></p>
+                </div>
+                <a href="/" class="button button-primary">Back to Home</a>
+            </div>
+
+            <div id="note-action-error" class="notice-panel notice-inline notice-error hidden" role="alert" tabindex="-1">
+                <svg class="notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 8v5"></path>
+                    <path d="M12 16h.01"></path>
+                </svg>
+                <p id="note-action-error-message"></p>
+            </div>
+
+            <footer class="dialog-status">
+                <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M12 3 19 6v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"></path>
+                    <path d="m9 12 2 2 4-5"></path>
+                </svg>
+                <span id="status-text">One-time note</span>
+            </footer>
+            {{if .Brand.FooterText}}<p class="footer-text">{{.Brand.FooterText}}</p>{{end}}
+        </article>
+        {{template "pageLinks" .}}
+    </div>
+    <script type="module" src="{{assetPath "view-note.js"}}"></script>
+{{end}}

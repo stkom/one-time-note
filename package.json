@@ -1,0 +1,15 @@
+{
+  "name": "one-time-note",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest --run",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "jsdom": "^28.0.0",
+    "vitest": "^4.1.9"
+  }
+}

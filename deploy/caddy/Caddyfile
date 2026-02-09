@@ -1,0 +1,12 @@
+localhost {
+	request_body {
+		max_size 2MiB
+	}
+
+	encode zstd gzip
+
+	reverse_proxy app:8080 {
+		# Caddy owns X-Forwarded-* by default; do not pass client-supplied Forwarded.
+		header_up -Forwarded
+	}
+}

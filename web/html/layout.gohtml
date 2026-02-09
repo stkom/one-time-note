@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="light">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{block "title" .}}{{.Brand.DisplayName}}{{end}}</title>
+    <link rel="icon" href="{{assetPath "favicon.svg"}}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{assetPath "site.css"}}">
+</head>
+<body>
+{{template "body" .}}
+</body>
+</html>
+
+{{define "pageLinks"}}
+    {{if or .Brand.LegalLinks .Brand.GitHubURL}}
+        <footer class="page-links">
+            {{template "legalLinks" .}}
+            {{template "sourceLink" .}}
+        </footer>
+    {{end}}
+{{end}}
+
+{{define "legalLinks"}}
+    {{with .Brand.LegalLinks}}
+        <nav class="legal-links" aria-label="Legal links">
+            {{range .}}
+                <a class="legal-link" href="{{.URL}}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">{{.Label}}</a>
+            {{end}}
+        </nav>
+    {{end}}
+{{end}}
+
+{{define "sourceLink"}}
+    {{with .Brand.GitHubURL}}
+        <a class="source-link" href="{{.}}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">GitHub</a>
+    {{end}}
+{{end}}

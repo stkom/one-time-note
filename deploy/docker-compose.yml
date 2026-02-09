@@ -1,0 +1,29 @@
+name: one-time-note
+
+services:
+  app:
+    image: ghcr.io/stkom/one-time-note:1.0.0
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - one-time-note-data:/data
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    restart: unless-stopped
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  one-time-note-data:
+  caddy-data:
+  caddy-config:

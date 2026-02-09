@@ -1,0 +1,31 @@
+{{define "title"}}{{.StatusText}} - {{.Brand.DisplayName}}{{end}}
+{{define "body"}}
+<div class="center-screen">
+    <article class="app-dialog" aria-labelledby="dialog-title">
+        <header class="dialog-header">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                    <path d="M12 14v3"></path>
+                </svg>
+            </div>
+            <div class="brand-name">{{.Brand.DisplayName}}</div>
+        </header>
+        <section class="dialog-section form-stack">
+            <h1 id="dialog-title" class="section-title">{{.StatusCode}} {{.StatusText}}</h1>
+            <div class="notice-panel notice-error">
+                <svg class="notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 8v5"></path>
+                    <path d="M12 16h.01"></path>
+                </svg>
+                <p>{{if eq .StatusCode 404}}The requested page could not be found.{{else}}Something went wrong while loading this page.{{end}}</p>
+            </div>
+            <a href="/" class="button button-primary">Go back home</a>
+        </section>
+        {{if .Brand.FooterText}}<p class="footer-text">{{.Brand.FooterText}}</p>{{end}}
+    </article>
+    {{template "pageLinks" .}}
+</div>
+{{end}}

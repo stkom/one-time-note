@@ -1,0 +1,16 @@
+**/*.md
+**/docker-compose*
+**/Dockerfile*
+*.db
+.dockerignore
+.env
+.git/
+.idea/
+.vs/
+.vscode/
+go.work
+go.work.sum
+node_modules/
+playwright-report/
+one-time-note
+test-results/
