@@ -140,8 +140,8 @@ func TestViewsRenderLegalLinksWhenConfigured(t *testing.T) {
 		Brand: Brand{
 			DisplayName: "Test Relay",
 			LegalLinks: []LegalLink{
-				{Label: "Privacy", URL: "http://notes.example.test/privacy"},
-				{Label: "Terms", URL: "/terms"},
+				{Label: "Privacy Policy", URL: "http://notes.example.test/privacy"},
+				{Label: "Terms of Use", URL: "/terms"},
 				{Label: "Legal notice", URL: "https://notes.example.test/legal"},
 			},
 		},
@@ -154,9 +154,9 @@ func TestViewsRenderLegalLinksWhenConfigured(t *testing.T) {
 	for _, want := range []string{
 		`<nav class="legal-links" aria-label="Legal links">`,
 		`href="http://notes.example.test/privacy"`,
-		`>Privacy</a>`,
+		`>Privacy Policy</a>`,
 		`href="/terms"`,
-		`>Terms</a>`,
+		`>Terms of Use</a>`,
 		`href="https://notes.example.test/legal"`,
 		`>Legal notice</a>`,
 		`rel="noopener noreferrer"`,

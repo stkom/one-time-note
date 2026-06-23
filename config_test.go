@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/netip"
 	"strings"
 	"testing"
@@ -88,17 +89,20 @@ func TestNewConfigHideGitHubLink(t *testing.T) {
 
 func TestNewConfigLegalLinks(t *testing.T) {
 	cfg, err := NewConfig(envMap(map[string]string{
-		envPrivacyURL:     "http://notes.example.test/privacy",
-		envTermsURL:       "/terms",
-		envLegalNoticeURL: "https://notes.example.test/legal",
+		"NOTE_LINK_1_TITLE": "Privacy Policy",
+		"NOTE_LINK_1_URL":   "http://notes.example.test/privacy",
+		"NOTE_LINK_2_TITLE": "Terms of Use",
+		"NOTE_LINK_2_URL":   "/terms",
+		"NOTE_LINK_3_TITLE": "Legal notice",
+		"NOTE_LINK_3_URL":   "https://notes.example.test/legal",
 	}))
 	if err != nil {
 		t.Fatalf("NewConfig returned error: %v", err)
 	}
 
 	want := []LegalLink{
-		{Label: "Privacy", URL: "http://notes.example.test/privacy"},
-		{Label: "Terms", URL: "/terms"},
+		{Label: "Privacy Policy", URL: "http://notes.example.test/privacy"},
+		{Label: "Terms of Use", URL: "/terms"},
 		{Label: "Legal notice", URL: "https://notes.example.test/legal"},
 	}
 	if len(cfg.Brand.LegalLinks) != len(want) {
@@ -108,6 +112,104 @@ func TestNewConfigLegalLinks(t *testing.T) {
 		if cfg.Brand.LegalLinks[i] != want[i] {
 			t.Fatalf("LegalLinks[%d] = %#v, want %#v", i, cfg.Brand.LegalLinks[i], want[i])
 		}
+	}
+}
+
+func TestNewConfigTrimsLegalLinkPairs(t *testing.T) {
+	cfg, err := NewConfig(envMap(map[string]string{
+		"NOTE_LINK_1_TITLE": " Privacy Policy ",
+		"NOTE_LINK_1_URL":   " /privacy ",
+	}))
+	if err != nil {
+		t.Fatalf("NewConfig returned error: %v", err)
+	}
+
+	want := []LegalLink{{Label: "Privacy Policy", URL: "/privacy"}}
+	if len(cfg.Brand.LegalLinks) != len(want) {
+		t.Fatalf("LegalLinks length = %d, want %d: %#v", len(cfg.Brand.LegalLinks), len(want), cfg.Brand.LegalLinks)
+	}
+	if cfg.Brand.LegalLinks[0] != want[0] {
+		t.Fatalf("LegalLinks[0] = %#v, want %#v", cfg.Brand.LegalLinks[0], want[0])
+	}
+}
+
+func TestNewConfigStopsLegalLinksAtFirstEmptyPair(t *testing.T) {
+	cfg, err := NewConfig(envMap(map[string]string{
+		"NOTE_LINK_1_TITLE": "Privacy",
+		"NOTE_LINK_1_URL":   "/privacy",
+		"NOTE_LINK_3_TITLE": "Ignored",
+		"NOTE_LINK_3_URL":   "/ignored",
+	}))
+	if err != nil {
+		t.Fatalf("NewConfig returned error: %v", err)
+	}
+
+	want := []LegalLink{{Label: "Privacy", URL: "/privacy"}}
+	if len(cfg.Brand.LegalLinks) != len(want) {
+		t.Fatalf("LegalLinks length = %d, want %d: %#v", len(cfg.Brand.LegalLinks), len(want), cfg.Brand.LegalLinks)
+	}
+	if cfg.Brand.LegalLinks[0] != want[0] {
+		t.Fatalf("LegalLinks[0] = %#v, want %#v", cfg.Brand.LegalLinks[0], want[0])
+	}
+}
+
+func TestNewConfigEmptyFirstLegalLinkPairProducesNoLinks(t *testing.T) {
+	cfg, err := NewConfig(envMap(map[string]string{
+		"NOTE_LINK_2_TITLE": "Ignored",
+		"NOTE_LINK_2_URL":   "/ignored",
+	}))
+	if err != nil {
+		t.Fatalf("NewConfig returned error: %v", err)
+	}
+
+	if len(cfg.Brand.LegalLinks) != 0 {
+		t.Fatalf("LegalLinks length = %d, want 0: %#v", len(cfg.Brand.LegalLinks), cfg.Brand.LegalLinks)
+	}
+}
+
+func TestNewConfigRejectsIncompleteLegalLinkPairs(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{
+			name: "missing title",
+			env: map[string]string{
+				"NOTE_LINK_1_URL": "/privacy",
+			},
+			want: "NOTE_LINK_1_TITLE",
+		},
+		{
+			name: "missing URL",
+			env: map[string]string{
+				"NOTE_LINK_1_TITLE": "Privacy",
+			},
+			want: "NOTE_LINK_1_URL",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewConfig(envMap(tt.env))
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("NewConfig error = %v, want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewConfigRejectsTooManyLegalLinks(t *testing.T) {
+	env := map[string]string{}
+	for index := 1; index <= maxConfiguredLinks+1; index++ {
+		env[linkTitleEnvName(index)] = "Link"
+		env[linkURLEnvName(index)] = "/link"
+	}
+
+	_, err := NewConfig(envMap(env))
+	want := fmt.Sprintf("maximum of %d", maxConfiguredLinks)
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("NewConfig error = %v, want containing %q", err, want)
 	}
 }
 
@@ -155,9 +257,6 @@ func TestNewConfigRejectsInvalidBoundsAndOrigins(t *testing.T) {
 		{name: "rate too high", key: envRateLimit, val: "2000/1m,1", want: envRateLimit},
 		{name: "rate window alias", key: envRateLimit, val: "60/m,120", want: envRateLimit},
 		{name: "invalid GitHub link visibility", key: envHideGitHubLink, val: "sometimes", want: envHideGitHubLink},
-		{name: "legal URL cannot be relative", key: envPrivacyURL, val: "privacy", want: envPrivacyURL},
-		{name: "legal URL cannot be protocol-relative", key: envTermsURL, val: "//notes.example.test/terms", want: envTermsURL},
-		{name: "legal URL cannot use unsafe scheme", key: envLegalNoticeURL, val: "javascript:alert(1)", want: envLegalNoticeURL},
 	}
 
 	for _, tt := range tests {
@@ -168,6 +267,31 @@ func TestNewConfigRejectsInvalidBoundsAndOrigins(t *testing.T) {
 			}
 			env[tt.key] = tt.val
 			_, err := NewConfig(envMap(env))
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("NewConfig error = %v, want containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewConfigRejectsInvalidLegalLinkURLs(t *testing.T) {
+	tests := []struct {
+		name string
+		url  string
+		want string
+	}{
+		{name: "cannot be relative", url: "privacy", want: "NOTE_LINK_1_URL"},
+		{name: "cannot be protocol-relative", url: "//notes.example.test/terms", want: "NOTE_LINK_1_URL"},
+		{name: "cannot use unsafe scheme", url: "javascript:alert(1)", want: "NOTE_LINK_1_URL"},
+		{name: "cannot contain whitespace", url: "/privacy policy", want: "NOTE_LINK_1_URL"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewConfig(envMap(map[string]string{
+				"NOTE_LINK_1_TITLE": "Privacy",
+				"NOTE_LINK_1_URL":   tt.url,
+			}))
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
 				t.Fatalf("NewConfig error = %v, want containing %q", err, tt.want)
 			}

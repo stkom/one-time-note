@@ -21,14 +21,13 @@ const (
 	envHealthCheckSources = "NOTE_HEALTH_CHECK_SOURCES"
 	envHideGitHubLink     = "NOTE_HIDE_GITHUB_LINK"
 	envHost               = "NOTE_HOST"
-	envLegalNoticeURL     = "NOTE_LEGAL_NOTICE_URL"
+	envLinkTitleFormat    = "NOTE_LINK_%d_TITLE"
+	envLinkURLFormat      = "NOTE_LINK_%d_URL"
 	envMaxDBSize          = "NOTE_MAX_DB_SIZE"
 	envMaxNoteSize        = "NOTE_MAX_NOTE_SIZE"
 	envPort               = "NOTE_PORT"
-	envPrivacyURL         = "NOTE_PRIVACY_URL"
 	envPublicOrigin       = "NOTE_PUBLIC_ORIGIN"
 	envRateLimit          = "NOTE_RATE_LIMIT"
-	envTermsURL           = "NOTE_TERMS_URL"
 	envTrustedProxies     = "NOTE_TRUSTED_PROXIES"
 )
 
@@ -42,6 +41,7 @@ const (
 	defaultMaxNoteSize = 1 * 1024
 	hardMaxDBSize      = 10 * 1024 * 1024 * 1024
 	hardMaxNoteSize    = 10 * 1024 * 1024
+	maxConfiguredLinks = 5
 )
 
 type StartupOptions struct {
@@ -200,29 +200,43 @@ func NewConfigWithOptions(getenv func(string) string, options StartupOptions) (*
 }
 
 func parseLegalLinks(getenv func(string) string) ([]LegalLink, error) {
-	specs := []struct {
-		name  string
-		label string
-	}{
-		{name: envPrivacyURL, label: "Privacy"},
-		{name: envTermsURL, label: "Terms"},
-		{name: envLegalNoticeURL, label: "Legal notice"},
-	}
-
-	links := make([]LegalLink, 0, len(specs))
-	for _, spec := range specs {
-		raw := strings.TrimSpace(getenv(spec.name))
-		if raw == "" {
-			continue
+	links := make([]LegalLink, 0, maxConfiguredLinks)
+	for index := 1; index <= maxConfiguredLinks; index++ {
+		titleName := linkTitleEnvName(index)
+		urlName := linkURLEnvName(index)
+		title := strings.TrimSpace(getenv(titleName))
+		rawURL := strings.TrimSpace(getenv(urlName))
+		if title == "" && rawURL == "" {
+			return links, nil
+		}
+		if title == "" {
+			return nil, fmt.Errorf("%s is required when %s is set", titleName, urlName)
+		}
+		if rawURL == "" {
+			return nil, fmt.Errorf("%s is required when %s is set", urlName, titleName)
 		}
 
-		linkURL, err := parseLegalLinkURL(spec.name, raw)
+		linkURL, err := parseLegalLinkURL(urlName, rawURL)
 		if err != nil {
 			return nil, err
 		}
-		links = append(links, LegalLink{Label: spec.label, URL: linkURL})
+		links = append(links, LegalLink{Label: title, URL: linkURL})
+	}
+
+	nextTitleName := linkTitleEnvName(maxConfiguredLinks + 1)
+	nextURLName := linkURLEnvName(maxConfiguredLinks + 1)
+	if strings.TrimSpace(getenv(nextTitleName)) != "" || strings.TrimSpace(getenv(nextURLName)) != "" {
+		return nil, fmt.Errorf("configured links exceed maximum of %d", maxConfiguredLinks)
 	}
 	return links, nil
+}
+
+func linkTitleEnvName(index int) string {
+	return fmt.Sprintf(envLinkTitleFormat, index)
+}
+
+func linkURLEnvName(index int) string {
+	return fmt.Sprintf(envLinkURLFormat, index)
 }
 
 func parseLegalLinkURL(name string, raw string) (string, error) {

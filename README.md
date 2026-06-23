@@ -85,7 +85,9 @@ Common settings:
 - `NOTE_DB_PATH` chooses the bbolt database path.
   The container writes to `/data/data.db`.
 - `NOTE_DISPLAY_NAME` and `NOTE_FOOTER_TEXT` customize plain-text UI labels.
-- `NOTE_PRIVACY_URL`, `NOTE_TERMS_URL`, and `NOTE_LEGAL_NOTICE_URL` add legal links below the note dialog.
+- `NOTE_LINK_1_TITLE` / `NOTE_LINK_1_URL` through `NOTE_LINK_5_TITLE` / `NOTE_LINK_5_URL`
+  add up to five custom links below the note dialog.
+  Links must be configured as contiguous title/URL pairs starting at 1.
 - `NOTE_HIDE_GITHUB_LINK=true` hides the small source link in the UI.
 - `NOTE_PUBLIC_ORIGIN` pins a canonical `https://` public origin.
 - `NOTE_TRUSTED_PROXIES` sets the trusted proxy source IPs or CIDRs.
