@@ -3,35 +3,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: yearly
     groups:
       github-actions:
-        patterns:
-          - "*"
-
-  - package-ecosystem: gomod
-    directory: /
-    schedule:
-      interval: monthly
-    groups:
-      go-dependencies:
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: monthly
-    groups:
-      npm-dependencies:
-        patterns:
-          - "*"
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: monthly
-    groups:
-      docker-dependencies:
         patterns:
           - "*"
