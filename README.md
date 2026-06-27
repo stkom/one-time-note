@@ -16,11 +16,48 @@ There are no accounts, sessions, cookies, admin UI, or app-level authentication.
 4. When the note is opened, the browser clears the fragment from the address bar.
 5. The server verifies the burn token, burns the note, and returns the encrypted payload for browser-side decryption.
 
-The path note ID is only a locator.
+API clients can read current server-enforced limits from `GET /api/config`.
+
+## Security Model
+
+The browser owns plaintext.
+It encrypts notes before upload and decrypts them after a successful open.
+The server stores encrypted payloads, note metadata, burn-token verifiers, used-ticket markers,
+schema version, and the root key in `data.db`.
+
+Shared links keep the AES key and the recipient's copy of the burn token in the URL fragment,
+which browsers do not send in HTTP requests.
+The server sees the path note ID and server-issued burn token during create and open requests,
+but it does not see the AES key.
 Knowing `/note/{id}` alone cannot open or destroy a note.
 
-API clients can read current server-enforced limits from `GET /api/config`.
-See [SECURITY.md](SECURITY.md) for the security model and operational boundaries.
+Opening a note is destructive.
+After a valid open request, the server burns the note before returning the encrypted payload.
+If the browser crashes, the network fails, or decryption fails after that point, the note is still gone.
+
+The server must never store or log plaintext, AES keys, URL fragments, raw burn tokens,
+request bodies, queries, or raw note IDs.
+Logs should use route patterns, status codes, coarse reason categories,
+and normalized rate-limit keys.
+
+Because the server delivers the JavaScript that handles encryption,
+a malicious server operator is outside the confidentiality model.
+An independent API client can move that trust boundary:
+if it performs encryption and decryption locally without executing JavaScript served by the note server,
+note plaintext can remain hidden from a malicious operator.
+The server still controls availability, metadata exposure, and which ciphertext it returns.
+
+That is not the main operating model for this project.
+One Time Note is meant to be self-hosted and used between trusted parties,
+usually when you are one side of the exchange and the other side is someone you trust.
+Compromised clients, devices, and browser extensions are outside the confidentiality model.
+
+Browser execution should stay same-origin and deny-by-default.
+Do not add third-party scripts, analytics, fonts, CDNs, telemetry, inline scripts,
+or HTML injection sinks without revisiting CSP and Trusted Types.
+
+`GET /healthz` is process liveness only.
+It must not expose database state, dependency details, or other operational internals.
 
 ## Local Development
 
@@ -64,8 +101,13 @@ For production, pin the image to a full release tag such as `ghcr.io/stkom/one-t
 instead of relying on a mutable tag.
 
 The reverse proxy should terminate TLS, strip or overwrite client-supplied forwarding headers,
-pass the public host and client IP chain, avoid request-body logging,
-and enforce request or connection limits appropriate for the deployment.
+pass the public host and client IP chain, send `https` as the forwarded scheme,
+avoid request-body logging, and enforce request or connection limits appropriate for the deployment.
+
+Production responses should keep the existing security headers,
+including HSTS after trusted HTTPS validation, a same-origin CSP, `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: no-referrer`, frame denial,
+and deny-by-default permissions for unused browser features.
 
 Use `NOTE_PUBLIC_ORIGIN` when the deployment has one canonical public origin.
 Use `NOTE_TRUSTED_PROXIES` only when the proxy connects from outside the default private, loopback,
@@ -104,6 +146,9 @@ All application state lives in `data.db`:
 encrypted payloads, note metadata, used-ticket markers, schema version, and the root key.
 
 Treat the database as secret-bearing disposable runtime state, not durable user data.
+A stolen database should not reveal note plaintext,
+but it remains sensitive because it contains metadata and the root key.
+Protect the file and its parent directory.
 Do not routinely back it up.
 If `data.db` leaks, stop the service and wipe or replace the database.
 
