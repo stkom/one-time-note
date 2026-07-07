@@ -1,10 +1,12 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
+    cooldown:
+      default-days: 28
     directory: /
     schedule:
-      interval: yearly
-    groups:
-      github-actions:
-        patterns:
-          - "*"
+      interval: "yearly"
+    assignees:
+      - "stkom"
+    reviewers:
+      - "stkom"
