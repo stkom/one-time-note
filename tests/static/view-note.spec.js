@@ -11,13 +11,14 @@ describe('view-note page controller', () => {
         window.history.replaceState(null, '', `/note/${noteId}`);
     });
 
-    it('should retrieve, decrypt, display, and clear the URL key', async () => {
-        const keyBytes = new Uint8Array(32).fill(4);
-        const burnTokenBytes = new Uint8Array(32).fill(5);
+    it('should retain the unopened secret, then clear it before retrieving', async () => {
+        const {keyBytes, burnTokenBytes} = setNoteSecret();
         const payload = await encryptString('Recovered secret', keyBytes, noteId);
-        window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
 
-        const fetch = vi.fn().mockResolvedValue(Response.json({payload: JSON.stringify(payload)}, {status: 200}));
+        const fetch = vi.fn().mockImplementation(async () => {
+            expect(window.location.hash).toBe('');
+            return Response.json({payload: JSON.stringify(payload)}, {status: 200});
+        });
 
         initViewNotePage(document, {
             fetch,
@@ -26,10 +27,11 @@ describe('view-note page controller', () => {
             location: window.location,
         });
 
-        expect(window.location.hash).toBe('');
+        expect(window.location.hash).toMatch(/^#v1\./);
 
         document.getElementById('confirm-view-note').click();
 
+        expect(window.location.hash).toBe('');
         await vi.waitFor(() => expect(document.getElementById('decrypted-content').value).toBe('Recovered secret'));
         expect(fetch).toHaveBeenCalledWith(`/api/notes/${noteId}/open`, expect.objectContaining({
             method: 'POST',
@@ -65,6 +67,8 @@ describe('view-note page controller', () => {
         const fetch = vi.fn();
 
         initViewNotePage(document, {fetch, history: window.history, location: window.location});
+        expect(window.location.hash).toBe('#abc');
+
         document.getElementById('confirm-view-note').click();
 
         expect(fetch).not.toHaveBeenCalled();
@@ -72,11 +76,23 @@ describe('view-note page controller', () => {
         expect(window.location.hash).toBe('');
     });
 
+    it('should scrub the unopened secret before Cancel navigation', () => {
+        window.history.replaceState(null, '', `/note/${noteId}#v1.unopened-secret`);
+
+        initViewNotePage(document, {history: window.history, location: window.location});
+        const cancel = document.getElementById('cancel-view-note');
+        cancel.addEventListener('click', event => event.preventDefault());
+        expect(window.location.hash).toBe('#v1.unopened-secret');
+
+        cancel.click();
+
+        expect(window.location.hash).toBe('');
+        expect(window.location.pathname).toBe(`/note/${noteId}`);
+    });
+
     it('should not attach duplicate confirm handlers when initialized twice', async () => {
-        const keyBytes = new Uint8Array(32).fill(4);
-        const burnTokenBytes = new Uint8Array(32).fill(5);
+        const {keyBytes} = setNoteSecret();
         const payload = await encryptString('Recovered secret', keyBytes, noteId);
-        window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
         const fetch = vi.fn(async () => Response.json({payload: JSON.stringify(payload)}, {status: 200}));
 
         initViewNotePage(document, {fetch, history: window.history, location: window.location});
@@ -87,30 +103,67 @@ describe('view-note page controller', () => {
         expect(fetch).toHaveBeenCalledTimes(1);
     });
 
-    it('should map 404 responses to a safe user-facing message', async () => {
-        const keyBytes = new Uint8Array(32).fill(4);
-        const burnTokenBytes = new Uint8Array(32).fill(5);
-        window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
-        const fetch = vi.fn().mockResolvedValue(Response.json({error: 'note_open_failed'}, {status: 404}));
+    it.each([
+        [400, 'invalid'],
+        [404, 'could not be opened'],
+    ])('should treat HTTP %i as terminal', async (status, message) => {
+        setNoteSecret();
+        const fetch = vi.fn().mockResolvedValue(Response.json({error: 'note_open_failed'}, {status}));
 
         initViewNotePage(document, {fetch, history: window.history, location: window.location});
         document.getElementById('confirm-view-note').click();
 
-        await vi.waitFor(() => expect(document.getElementById('error-message').textContent).toContain('could not be opened'));
+        await vi.waitFor(() => expect(document.getElementById('error-message').textContent).toContain(message));
+        expect(document.getElementById('note-confirmation').classList.contains('hidden')).toBe(true);
         expect(document.getElementById('note-display').classList.contains('hidden')).toBe(true);
     });
 
-    it('should map rate-limited opens to a clear user-facing message', async () => {
-        const keyBytes = new Uint8Array(32).fill(4);
-        const burnTokenBytes = new Uint8Array(32).fill(5);
-        window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
-        const fetch = vi.fn().mockResolvedValue(Response.json({error: 'rate_limited'}, {status: 429}));
+    it.each([
+        ['network failures', () => Promise.reject(new TypeError('offline')), 'Could not open this note.'],
+        ['rate limits', () => Promise.resolve(Response.json({error: 'rate_limited'}, {status: 429})), 'Too many failed attempts. Wait a moment and try again.'],
+        ['server failures', () => Promise.resolve(Response.json({error: 'server_error'}, {status: 503})), 'Could not retrieve this note. Try again.'],
+    ])('should allow retry after %s', async (_name, firstAttempt, message) => {
+        const {keyBytes} = setNoteSecret();
+        const payload = await encryptString('Recovered secret', keyBytes, noteId);
+        const fetch = vi.fn()
+            .mockImplementationOnce(firstAttempt)
+            .mockResolvedValueOnce(Response.json({payload: JSON.stringify(payload)}, {status: 200}));
 
         initViewNotePage(document, {fetch, history: window.history, location: window.location});
         document.getElementById('confirm-view-note').click();
 
-        await vi.waitFor(() => expect(document.getElementById('error-message').textContent).toBe('Too many failed attempts. Wait a moment and try again.'));
-        expect(document.getElementById('note-display').classList.contains('hidden')).toBe(true);
+        await vi.waitFor(() => expect(document.getElementById('note-action-error-message').textContent).toBe(message));
+        expect(document.getElementById('note-confirmation').classList.contains('hidden')).toBe(false);
+        expect(window.location.hash).toBe('');
+
+        document.getElementById('confirm-view-note').click();
+
+        await vi.waitFor(() => expect(document.getElementById('decrypted-content').value).toBe('Recovered secret'));
+        expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not show decrypted content after the page is hidden', async () => {
+        const {keyBytes} = setNoteSecret();
+        const payload = await encryptString('Recovered secret', keyBytes, noteId);
+        let resolveOpen;
+        const fetch = vi.fn(() => new Promise(resolve => {
+            resolveOpen = resolve;
+        }));
+        const windowRef = new EventTarget();
+        initViewNotePage(document, {
+            fetch,
+            history: window.history,
+            location: window.location,
+            window: windowRef,
+        });
+        document.getElementById('confirm-view-note').click();
+        await vi.waitFor(() => expect(resolveOpen).toBeTypeOf('function'));
+
+        windowRef.dispatchEvent(new Event('pagehide'));
+        resolveOpen(Response.json({payload: JSON.stringify(payload)}, {status: 200}));
+
+        await vi.waitFor(() => expect(document.getElementById('confirm-view-note').disabled).toBe(false));
+        expect(document.getElementById('decrypted-content').value).toBe('');
     });
 
     it.each([
@@ -119,16 +172,27 @@ describe('view-note page controller', () => {
         ['invalid payload', Response.json({payload: 'not valid!'}, {status: 200})],
         ['object payload', Response.json({payload: {protected: 'unsupported'}}, {status: 200})],
     ])('should reject %s success responses', async (_name, response) => {
-        const keyBytes = new Uint8Array(32).fill(4);
-        const burnTokenBytes = new Uint8Array(32).fill(5);
-        window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
+        setNoteSecret();
         const fetch = vi.fn().mockResolvedValue(response);
 
         initViewNotePage(document, {fetch, history: window.history, location: window.location});
         document.getElementById('confirm-view-note').click();
 
         await vi.waitFor(() => expect(document.getElementById('error-message').textContent).toBe('The server returned an invalid encrypted note.'));
+        expect(document.getElementById('note-confirmation').classList.contains('hidden')).toBe(true);
         expect(document.getElementById('note-display').classList.contains('hidden')).toBe(true);
+    });
+
+    it('should treat decryption failures as terminal', async () => {
+        setNoteSecret();
+        const payload = await encryptString('Recovered secret', new Uint8Array(32).fill(9), noteId);
+        const fetch = vi.fn().mockResolvedValue(Response.json({payload: JSON.stringify(payload)}, {status: 200}));
+
+        initViewNotePage(document, {fetch, history: window.history, location: window.location});
+        document.getElementById('confirm-view-note').click();
+
+        await vi.waitFor(() => expect(document.getElementById('error-message').textContent).toContain('could not be decrypted'));
+        expect(document.getElementById('note-confirmation').classList.contains('hidden')).toBe(true);
     });
 
     it('should show copy failures without hiding the decrypted note', async () => {
@@ -173,10 +237,18 @@ describe('view-note page controller', () => {
     });
 });
 
+function setNoteSecret() {
+    const keyBytes = new Uint8Array(32).fill(4);
+    const burnTokenBytes = new Uint8Array(32).fill(5);
+    window.history.replaceState(null, '', `/note/${noteId}#${encodeSecretFragment(keyBytes, burnTokenBytes)}`);
+    return {keyBytes, burnTokenBytes};
+}
+
 function viewPageHtml(id) {
     return `
         <div id="note-confirmation">
             <button id="confirm-view-note" data-id="${id}"><span class="button-label">View Note</span></button>
+            <a id="cancel-view-note" href="/">Cancel</a>
         </div>
         <div id="note-display" class="hidden">
             <textarea id="decrypted-content"></textarea>

@@ -3,6 +3,8 @@ import {clearAnchor, decryptString, getSecretFragmentFromAnchor, parseSecretFrag
 
 const NOTE_ID_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
+class RetryableOpenError extends UserVisibleError {}
+
 export function initViewNotePage(root = document, options = {}) {
     const deps = {
         fetch: options.fetch ?? globalThis.fetch?.bind(globalThis),
@@ -12,6 +14,7 @@ export function initViewNotePage(root = document, options = {}) {
         crypto: options.crypto ?? globalThis.crypto,
         URL: options.URL ?? globalThis.URL,
         document: options.document ?? document,
+        window: options.window ?? window,
     };
 
     const confirmation = requiredElement("note-confirmation", root);
@@ -26,29 +29,28 @@ export function initViewNotePage(root = document, options = {}) {
     const actionErrorPanel = requiredElement("note-action-error", root);
     const actionErrorMessage = requiredElement("note-action-error-message", root);
     const confirmButton = requiredElement("confirm-view-note", root);
+    const cancelLink = requiredElement("cancel-view-note", root);
     const decryptedContent = requiredElement("decrypted-content", root);
     const copyButton = requiredElement("copy-note", root);
     const downloadButton = requiredElement("download-note", root);
     const statusText = requiredElement("status-text", root);
 
-    let secret = null;
-    let secretError = null;
-    const fragment = getSecretFragmentFromAnchor(deps.location);
-    if (fragment) {
-        try {
-            secret = parseSecretFragment(fragment);
-        } catch (error) {
-            secretError = error;
-        } finally {
-            clearAnchor(deps.history, deps.location);
-        }
-    }
+    const openState = {
+        started: false,
+        secret: null,
+        secretError: null,
+    };
+    let pageActive = true;
+
+    deps.window?.addEventListener?.("pagehide", () => {
+        pageActive = false;
+    });
 
     confirmButton.addEventListener("click", () => {
+        beginOpening(openState, deps);
         void retrieveNote({
             deps,
-            secret,
-            secretError,
+            openState,
             confirmation,
             display,
             errorPanel,
@@ -58,7 +60,11 @@ export function initViewNotePage(root = document, options = {}) {
             confirmButton,
             decryptedContent,
             statusText,
+            pageActive: () => pageActive,
         });
+    });
+    cancelLink.addEventListener("click", () => {
+        clearAnchor(deps.history, deps.location);
     });
 
     copyButton.addEventListener("click", () => {
@@ -69,18 +75,38 @@ export function initViewNotePage(root = document, options = {}) {
     });
 }
 
+function beginOpening(openState, deps) {
+    if (openState.started) {
+        return;
+    }
+    openState.started = true;
+
+    const fragment = getSecretFragmentFromAnchor(deps.location);
+    try {
+        if (fragment) {
+            openState.secret = parseSecretFragment(fragment);
+        }
+    } catch (error) {
+        openState.secretError = error;
+    } finally {
+        clearAnchor(deps.history, deps.location);
+    }
+}
+
 async function retrieveNote(ui) {
+    clearError(ui.actionErrorPanel, ui.actionErrorMessage);
+
     const noteId = ui.confirmButton.dataset.id;
     if (!NOTE_ID_PATTERN.test(noteId)) {
         showNoteError(ui, "This note link is invalid.");
         return;
     }
 
-    if (ui.secretError) {
-        showNoteError(ui, displayMessageFor(ui.secretError, "The note secret in this URL is invalid."));
+    if (ui.openState.secretError) {
+        showNoteError(ui, displayMessageFor(ui.openState.secretError, "The note secret in this URL is invalid."));
         return;
     }
-    if (!ui.secret) {
+    if (!ui.openState.secret) {
         showNoteError(ui, "No note secret was found in the URL.");
         return;
     }
@@ -93,25 +119,38 @@ async function retrieveNote(ui) {
     const restoreButton = setButtonBusy(ui.confirmButton, "Retrieving...");
 
     try {
-        const response = await ui.deps.fetch(`/api/notes/${noteId}/open`, {
-            method: "POST",
-            body: JSON.stringify({burnToken: ui.secret.burnToken}),
-            credentials: "same-origin",
-            cache: "no-store",
-            redirect: "error",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-        });
+        let response;
+        try {
+            response = await ui.deps.fetch(`/api/notes/${noteId}/open`, {
+                method: "POST",
+                body: JSON.stringify({burnToken: ui.openState.secret.burnToken}),
+                credentials: "same-origin",
+                cache: "no-store",
+                redirect: "error",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+            });
+        } catch {
+            throw new RetryableOpenError("Could not open this note.");
+        }
 
         if (!response.ok) {
-            throw new UserVisibleError(retrieveErrorMessage(response));
+            const message = retrieveErrorMessage(response);
+            if (response.status === 429 || response.status >= 500) {
+                throw new RetryableOpenError(message);
+            }
+            throw new UserVisibleError(message);
         }
 
         const payload = await readOpenNotePayload(response);
         try {
-            ui.decryptedContent.value = await decryptString(payload, ui.secret.keyBytes, noteId, ui.deps.crypto);
+            const plaintext = await decryptString(payload, ui.openState.secret.keyBytes, noteId, ui.deps.crypto);
+            if (!ui.pageActive()) {
+                return;
+            }
+            ui.decryptedContent.value = plaintext;
         } catch {
             throw new UserVisibleError("This note was retrieved but could not be decrypted. It may already be consumed.");
         }
@@ -122,7 +161,12 @@ async function retrieveNote(ui) {
         focusElement(ui.decryptedContent);
         ui.statusText.textContent = "Decrypted in this browser";
     } catch (error) {
-        showNoteError(ui, displayMessageFor(error, "Could not open this note."));
+        const message = displayMessageFor(error, "Could not open this note.");
+        if (error instanceof RetryableOpenError) {
+            showRetryableError(ui, message);
+        } else {
+            showNoteError(ui, message);
+        }
     } finally {
         restoreButton();
     }
@@ -162,6 +206,13 @@ function downloadDecryptedNote(decryptedContent, errorPanel, errorMessage, deps)
     } catch (error) {
         setError(errorPanel, errorMessage, displayMessageFor(error, "Could not download the note."), {focus: true});
     }
+}
+
+function showRetryableError(ui, message) {
+    hide(ui.display);
+    hide(ui.errorPanel);
+    show(ui.confirmation);
+    setError(ui.actionErrorPanel, ui.actionErrorMessage, message, {focus: true});
 }
 
 function showNoteError(ui, message) {

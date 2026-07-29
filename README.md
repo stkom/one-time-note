@@ -13,7 +13,8 @@ There are no accounts, sessions, cookies, admin UI, or app-level authentication.
 2. The browser encrypts the plaintext with AES-GCM and uploads only the encrypted payload.
 3. The shared link contains the note path plus a secret fragment.
    The AES key stays in the fragment and is never sent to the server.
-4. When the note is opened, the browser clears the fragment from the address bar.
+4. The fragment remains until the recipient selects View Note or Cancel, so an unopened note survives reload or tab restoration.
+   The browser then clears the fragment before opening the note or navigating away.
 5. The server verifies the burn token, burns the note, and returns the encrypted payload for browser-side decryption.
 
 API clients can read current server-enforced limits from `GET /api/config`.

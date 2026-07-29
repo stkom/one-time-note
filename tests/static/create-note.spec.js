@@ -162,6 +162,46 @@ describe('create-note page controller', () => {
         expect(event.defaultPrevented).toBe(true);
     });
 
+    it('should reset draft state when the page is hidden', () => {
+        const windowRef = new EventTarget();
+        initCreateNotePage(document, {fetch: vi.fn(), window: windowRef});
+
+        document.getElementById('note-content').value = 'unsaved';
+        document.getElementById('note-content').dispatchEvent(new Event('input', {bubbles: true}));
+        windowRef.dispatchEvent(new Event('pagehide'));
+        const event = new Event('beforeunload', {cancelable: true});
+        windowRef.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('should not show a generated link after the page is hidden', async () => {
+        let resolveSave;
+        const fetch = vi.fn(async url => {
+            if (url === '/api/tickets') {
+                return createTicketResponse();
+            }
+            return new Promise(resolve => {
+                resolveSave = resolve;
+            });
+        });
+        const windowRef = new EventTarget();
+        initCreateNotePage(document, {
+            fetch,
+            crypto: fixedRandomCrypto(3),
+            window: windowRef,
+        });
+        document.getElementById('note-content').value = 'Secret note';
+        submitForm();
+        await vi.waitFor(() => expect(resolveSave).toBeTypeOf('function'));
+
+        windowRef.dispatchEvent(new Event('pagehide'));
+        resolveSave(Response.json({id: noteId, expiresInSeconds: 86400}, {status: 201}));
+
+        await vi.waitFor(() => expect(document.getElementById('save-note-button').disabled).toBe(false));
+        expect(document.getElementById('note-link').value).toBe('');
+    });
+
     it('should reject invalid ticket responses before encrypting', async () => {
         const fetch = vi.fn(async () => Response.json({id: 'invalid', ticket: 'ticket', burnToken}, {status: 200}));
 

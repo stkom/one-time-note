@@ -31,6 +31,7 @@ func TestViewsRenderVersionedAssetPaths(t *testing.T) {
 			want: []string{
 				`href="/static/assets123/favicon.svg"`,
 				`href="/static/assets123/site.css"`,
+				`src="/static/assets123/browser-lifecycle.js"`,
 				`src="/static/assets123/create-note.js"`,
 				`JavaScript and Web Crypto are required to encrypt notes in this browser.`,
 				`value="86400"`,
@@ -48,8 +49,23 @@ func TestViewsRenderVersionedAssetPaths(t *testing.T) {
 			want: []string{
 				`href="/static/assets123/favicon.svg"`,
 				`href="/static/assets123/site.css"`,
+				`src="/static/assets123/browser-lifecycle.js"`,
 				`src="/static/assets123/view-note.js"`,
 				`JavaScript and Web Crypto are required to decrypt notes in this browser.`,
+			},
+		},
+		{
+			name:     "error",
+			template: "error",
+			model: ErrorViewModel{
+				Brand:      Brand{DisplayName: "Test Relay"},
+				StatusCode: http.StatusNotFound,
+				StatusText: http.StatusText(http.StatusNotFound),
+			},
+			want: []string{
+				`href="/static/assets123/favicon.svg"`,
+				`href="/static/assets123/site.css"`,
+				`src="/static/assets123/browser-lifecycle.js"`,
 			},
 		},
 	}

@@ -45,6 +45,7 @@ export function initCreateNotePage(root = document, options = {}) {
     const limits = readLimits(config, expirationOptions);
     const encoder = new TextEncoder();
     let hasUnsavedDraft = false;
+    let pageActive = true;
 
     submitButton.type = "submit";
     focusElement(content);
@@ -73,6 +74,7 @@ export function initCreateNotePage(root = document, options = {}) {
             markSaved: () => {
                 hasUnsavedDraft = false;
             },
+            pageActive: () => pageActive,
         });
     });
 
@@ -145,12 +147,15 @@ export function initCreateNotePage(root = document, options = {}) {
             clearError(errorPanel, errorMessage);
         });
     }
+    deps.window?.addEventListener?.("pagehide", () => {
+        pageActive = false;
+        hasUnsavedDraft = false;
+    });
     deps.window?.addEventListener?.("beforeunload", ev => {
         if (!hasUnsavedDraft) {
             return;
         }
         ev.preventDefault();
-        ev.returnValue = "";
     });
     noteLink.addEventListener("click", () => noteLink.select());
 
@@ -226,6 +231,9 @@ async function createNote(ui) {
         const savedNote = await readCreateNoteResponse(response);
         if (savedNote.id !== noteId) {
             throw new UserVisibleError("The server returned an invalid note link.");
+        }
+        if (!ui.pageActive()) {
+            return;
         }
 
         const publicOrigin = ui.config.dataset.publicOrigin || ui.deps.location.origin;
