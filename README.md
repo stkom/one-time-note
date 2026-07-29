@@ -52,6 +52,8 @@ That is not the main operating model for this project.
 One Time Note is meant to be self-hosted and used between trusted parties,
 usually when you are one side of the exchange and the other side is someone you trust.
 Compromised clients, devices, and browser extensions are outside the confidentiality model.
+Secret-bearing controls ask browsers to disable autocomplete, autocorrection, spellcheck,
+and writing assistance, but these hints are best-effort and browsers may ignore them.
 
 Browser execution should stay same-origin and deny-by-default.
 Do not add third-party scripts, analytics, fonts, CDNs, telemetry, inline scripts,

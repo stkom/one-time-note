@@ -25,11 +25,13 @@
                 </div>
             </noscript>
 
-            <form id="create-note-form" class="dialog-section form-stack" data-page="create-note">
+            <form id="create-note-form" class="dialog-section form-stack" data-page="create-note" autocomplete="off">
                 <input type="hidden" id="create-config" data-public-origin="{{.PublicOrigin}}" data-display-name="{{.Brand.DisplayName}}" data-max-note-size="{{.MaxNoteSize}}"/>
                 <label class="field-group" for="note-content">
                     <span id="dialog-title" class="section-title">New encrypted note</span>
                     <textarea id="note-content" rows="7" required
+                              autocomplete="off" autocapitalize="none" autocorrect="off"
+                              spellcheck="false" writingsuggestions="false"
                               placeholder="Type your secret note..."></textarea>
                 </label>
                 <div class="expiration-picker">
@@ -67,7 +69,9 @@
                     <li id="created-expiration-fact">Expires after 24 hours</li>
                     <li>Secret is stored only in this URL</li>
                 </ul>
-                <input class="text-field" type="text" id="note-link" readonly aria-label="Encrypted note link"/>
+                <input class="text-field" type="text" id="note-link" readonly aria-label="Encrypted note link"
+                       autocomplete="off" autocapitalize="none" autocorrect="off"
+                       spellcheck="false" writingsuggestions="false"/>
                 <button type="button" id="copy-link-button" class="button button-primary">
                     <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <rect x="8" y="8" width="11" height="11" rx="2"></rect>
