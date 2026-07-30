@@ -74,6 +74,58 @@ test('Cancel scrubs the history entry before Back', async ({page, context}) => {
     expect(openRequests).toBe(0);
 });
 
+test('retries opening after a rate limit response', async ({page}) => {
+    const noteURL = await createNote(page, 'retry browser secret');
+    let attempts = 0;
+    await page.route('**/api/notes/*/open', async route => {
+        attempts += 1;
+        if (attempts === 1) {
+            await route.fulfill({
+                status: 429,
+                json: {error: 'rate_limited'},
+            });
+            return;
+        }
+        await route.fallback();
+    });
+
+    await page.goto(noteURL);
+    await page.getByRole('button', {name: 'View Note'}).click();
+    await expect(page.getByText(/too many failed attempts/i)).toBeVisible();
+
+    await page.getByRole('button', {name: 'View Note'}).click();
+    await expect(page.getByLabel('Your note')).toHaveValue('retry browser secret');
+    expect(attempts).toBe(2);
+});
+
+test('does not expose decrypted content after the page is hidden', async ({page}) => {
+    const noteURL = await createNote(page, 'hidden browser secret');
+    let responseReady;
+    const interceptedResponse = new Promise(resolve => {
+        responseReady = resolve;
+    });
+    let releaseResponse;
+    const release = new Promise(resolve => {
+        releaseResponse = resolve;
+    });
+    await page.route('**/api/notes/*/open', async route => {
+        const response = await route.fetch();
+        responseReady();
+        await release;
+        await route.fulfill({response});
+    });
+
+    await page.goto(noteURL);
+    await page.getByRole('button', {name: 'View Note'}).click();
+    await interceptedResponse;
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    releaseResponse();
+
+    await expect(page.getByRole('button', {name: 'View Note'})).toBeEnabled();
+    await expect(page.locator('#decrypted-content')).toHaveValue('');
+    await expect(page.locator('#note-display')).toBeHidden();
+});
+
 test('malformed routes scrub recognized note fragments', async ({page}) => {
     await page.goto('/not-a-note#v1.malformed-secret');
 
