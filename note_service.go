@@ -14,7 +14,7 @@ import (
 const (
 	maxTicketLen         = 512
 	minNoteLifetime      = time.Hour
-	maxNoteLifetime      = 7 * 24 * time.Hour
+	maxNoteLifetime      = 14 * 24 * time.Hour
 	currentSchemaVersion = 1
 	ticketClockSkew      = time.Minute
 	ticketTimeout        = 15 * time.Minute
