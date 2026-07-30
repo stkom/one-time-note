@@ -10,7 +10,6 @@ test('creates, opens, and consumes a one-time encrypted note', async ({page, con
     await expect(page.getByRole('button', {name: 'Save & Encrypt'})).toBeEnabled();
 
     await page.getByRole('textbox', {name: 'New encrypted note'}).fill('browser test secret');
-    await page.getByRole('button', {name: '1 day'}).click();
     await page.getByRole('option', {name: '3 days'}).click();
     await page.getByRole('button', {name: 'Save & Encrypt'}).click();
 
@@ -49,6 +48,18 @@ test('creates, opens, and consumes a one-time encrypted note', async ({page, con
     await expect(secondOpen.getByText(/could not be opened/i)).toBeVisible();
 
     expect(consoleIssues).toEqual([]);
+});
+
+test('applies a custom expiration immediately', async ({page}) => {
+    await page.goto('/');
+    await page.getByRole('textbox', {name: 'New encrypted note'}).fill('custom expiration secret');
+    await page.getByRole('option', {name: 'Custom'}).click();
+    await page.getByLabel('Custom expiration unit').selectOption('3600');
+    await page.getByLabel('Custom expiration amount').fill('36');
+
+    await expect(page.locator('#expiration-selected')).toHaveText('36 hours');
+    await page.getByRole('button', {name: 'Save & Encrypt'}).click();
+    await expect(page.getByText('Expires after 36 hours')).toBeVisible();
 });
 
 test('Cancel scrubs the history entry before Back', async ({page, context}) => {

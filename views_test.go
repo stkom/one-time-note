@@ -35,8 +35,9 @@ func TestViewsRenderVersionedAssetPaths(t *testing.T) {
 				`src="/static/assets123/create-note.js"`,
 				`JavaScript and Web Crypto are required to encrypt notes in this browser.`,
 				`value="86400"`,
-				`aria-selected="true" data-expires-in-seconds="86400">1 day</button>`,
-				`data-expires-in-seconds="604800">7 days</button>`,
+				`data-expires-in-seconds="86400" aria-label="1 day">1d</button>`,
+				`data-expires-in-seconds="604800" aria-label="7 days">7d</button>`,
+				`id="custom-expiration-toggle"`,
 			},
 		},
 		{

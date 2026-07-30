@@ -27,8 +27,9 @@
 
             <form id="create-note-form" class="dialog-section form-stack" data-page="create-note" autocomplete="off">
                 <input type="hidden" id="create-config" data-public-origin="{{.PublicOrigin}}" data-display-name="{{.Brand.DisplayName}}" data-max-note-size="{{.MaxNoteSize}}"/>
-                <label class="field-group" for="note-content">
+                <label class="field-group note-field" for="note-content">
                     <span id="dialog-title" class="section-title">New encrypted note</span>
+                    <p id="note-size-status" class="helper-text size-status" aria-live="polite"></p>
                     <textarea id="note-content" rows="7" required
                               autocomplete="off" autocapitalize="none" autocorrect="off"
                               spellcheck="false" writingsuggestions="false"
@@ -36,22 +37,32 @@
                 </label>
                 <div class="expiration-picker">
                     <input type="hidden" id="expires-in-seconds" name="expiresInSeconds" value="86400"/>
-                    <button type="button" id="expiration-toggle" class="expiration-toggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="expiration-menu">
-                        <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <path d="M12 7v5l3 2"></path>
-                        </svg>
-                        <span id="expiration-selected">1 day</span>
-                    </button>
-                    <div id="expiration-menu" class="expiration-menu hidden" role="listbox" aria-label="Note expiration">
-                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="3600">1 hour</button>
-                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="14400">4 hours</button>
-                        <button type="button" class="expiration-option" role="option" aria-selected="true" data-expires-in-seconds="86400">1 day</button>
-                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="259200">3 days</button>
-                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="604800">7 days</button>
-                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="1209600">14 days</button>
+                    <div class="expiration-heading">
+                        <span id="expiration-label" class="field-label">Expiration</span>
+                        <span class="expiration-selection">Selected: <strong id="expiration-selected">1 day</strong></span>
                     </div>
-                    <p id="note-size-status" class="helper-text size-status" aria-live="polite"></p>
+                    <div id="expiration-options" class="expiration-options" role="listbox" aria-labelledby="expiration-label">
+                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="3600" aria-label="1 hour">1h</button>
+                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="14400" aria-label="4 hours">4h</button>
+                        <button type="button" class="expiration-option" role="option" aria-selected="true" data-expires-in-seconds="86400" aria-label="1 day">1d</button>
+                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="259200" aria-label="3 days">3d</button>
+                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="604800" aria-label="7 days">7d</button>
+                        <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="1209600" aria-label="14 days">14d</button>
+                        <button type="button" id="custom-expiration-toggle" class="expiration-option expiration-custom-option"
+                                role="option" aria-selected="false" aria-expanded="false" aria-controls="custom-expiration">
+                            Custom
+                        </button>
+                    </div>
+                    <div id="custom-expiration" class="custom-expiration hidden">
+                        <span>Expires in</span>
+                        <input type="number" id="custom-expiration-amount" min="1" max="336" step="1" value="1" disabled
+                               inputmode="numeric" aria-label="Custom expiration amount"/>
+                        <select id="custom-expiration-unit" aria-label="Custom expiration unit" disabled>
+                            <option value="3600">hours</option>
+                            <option value="86400" selected>days</option>
+                        </select>
+                        <span id="custom-expiration-status" class="visually-hidden" aria-live="polite"></span>
+                    </div>
                 </div>
 
                 <button type="button" id="save-note-button" class="button button-primary">

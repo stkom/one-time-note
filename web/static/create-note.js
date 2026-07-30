@@ -5,6 +5,7 @@ const NOTE_ID_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const GCM_IV_BYTES = 12;
 const GCM_TAG_BYTES = 16;
 const ENCRYPTED_PAYLOAD_PROTECTED_HEADER_BYTES = 35;
+const SecondsPerMinute = 60;
 const SecondsPerHour = 60 * 60;
 const SecondsPerDay = 24 * SecondsPerHour;
 
@@ -35,12 +36,16 @@ export function initCreateNotePage(root = document, options = {}) {
     const errorPanel = requiredElement("create-note-error", root);
     const errorMessage = requiredElement("create-note-error-message", root);
     const expirationValue = requiredElement("expires-in-seconds", root);
-    const expirationToggle = requiredElement("expiration-toggle", root);
-    const expirationMenu = requiredElement("expiration-menu", root);
+    const expirationOptionsRoot = requiredElement("expiration-options", root);
     const expirationSelected = requiredElement("expiration-selected", root);
+    const customExpirationToggle = requiredElement("custom-expiration-toggle", root);
+    const customExpiration = requiredElement("custom-expiration", root);
+    const customExpirationAmount = requiredElement("custom-expiration-amount", root);
+    const customExpirationUnit = requiredElement("custom-expiration-unit", root);
+    const customExpirationStatus = requiredElement("custom-expiration-status", root);
     const sizeStatus = requiredElement("note-size-status", root);
     const expirationFact = requiredElement("created-expiration-fact", root);
-    const expirationOptions = Array.from(expirationMenu.querySelectorAll(".expiration-option"));
+    const expirationOptions = Array.from(expirationOptionsRoot.querySelectorAll("[data-expires-in-seconds]"));
 
     const limits = readLimits(config, expirationOptions);
     const encoder = new TextEncoder();
@@ -88,65 +93,68 @@ export function initCreateNotePage(root = document, options = {}) {
             form.requestSubmit();
         }
     });
-    expirationToggle.addEventListener("click", () => {
-        toggleExpirationMenu(expirationToggle, expirationMenu);
-    });
-    expirationToggle.addEventListener("keydown", ev => {
-        if (ev.key === "ArrowDown") {
-            ev.preventDefault();
-            openExpirationMenu(expirationToggle, expirationMenu);
-            focusSelectedExpirationOption(expirationOptions);
-        }
-    });
-    expirationMenu.addEventListener("click", ev => {
-        const option = ev.target.closest(".expiration-option");
+    expirationOptionsRoot.addEventListener("click", ev => {
+        const option = ev.target.closest("[data-expires-in-seconds]");
         if (!option) {
             return;
         }
-        selectExpirationOption(option, expirationOptions, expirationValue, expirationSelected);
-        closeExpirationMenu(expirationToggle, expirationMenu);
-        focusElement(expirationToggle);
+        selectExpirationOption(option, expirationOptions, customExpirationToggle, customExpiration, expirationValue, expirationSelected);
         clearError(errorPanel, errorMessage);
     });
-    expirationMenu.addEventListener("keydown", ev => {
-        if (ev.key === "Escape") {
+    expirationOptionsRoot.addEventListener("keydown", ev => {
+        if (ev.key === "ArrowRight" || ev.key === "ArrowDown" || ev.key === "ArrowLeft" || ev.key === "ArrowUp") {
             ev.preventDefault();
-            closeExpirationMenu(expirationToggle, expirationMenu);
-            focusElement(expirationToggle);
-            return;
-        }
-        if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
-            ev.preventDefault();
-            focusAdjacentExpirationOption(expirationOptions, ev.key === "ArrowDown" ? 1 : -1);
-            return;
-        }
-        if (ev.key === "Enter" || ev.key === " ") {
-            ev.preventDefault();
-            const option = ev.target.closest(".expiration-option");
-            if (option) {
-                selectExpirationOption(option, expirationOptions, expirationValue, expirationSelected);
-                closeExpirationMenu(expirationToggle, expirationMenu);
-                focusElement(expirationToggle);
-                clearError(errorPanel, errorMessage);
-            }
+            const choices = [...expirationOptions, customExpirationToggle];
+            const direction = ev.key === "ArrowRight" || ev.key === "ArrowDown" ? 1 : -1;
+            focusAdjacentExpirationOption(choices, direction);
         }
     });
-    deps.window?.addEventListener?.("click", ev => {
-        if (!expirationMenu.classList.contains("hidden") && !expirationMenu.contains(ev.target) && !expirationToggle.contains(ev.target)) {
-            closeExpirationMenu(expirationToggle, expirationMenu);
-        }
+    customExpirationToggle.addEventListener("click", () => {
+        selectCustomExpiration(
+            expirationOptions,
+            customExpirationToggle,
+            customExpiration,
+            customExpirationAmount,
+            customExpirationUnit,
+            expirationValue,
+        );
+        updateCustomExpiration(
+            customExpirationAmount,
+            customExpirationUnit,
+            customExpirationStatus,
+            expirationOptions,
+            customExpirationToggle,
+            expirationValue,
+            expirationSelected,
+            limits,
+        );
+        clearError(errorPanel, errorMessage);
+        focusElement(customExpirationAmount);
     });
-    deps.window?.addEventListener?.("keydown", ev => {
-        if (ev.key === "Escape" && !expirationMenu.classList.contains("hidden")) {
-            closeExpirationMenu(expirationToggle, expirationMenu);
-            focusElement(expirationToggle);
-        }
+    customExpirationAmount.addEventListener("input", () => {
+        updateCustomExpiration(
+            customExpirationAmount,
+            customExpirationUnit,
+            customExpirationStatus,
+            expirationOptions,
+            customExpirationToggle,
+            expirationValue,
+            expirationSelected,
+            limits,
+        );
     });
-    for (const option of expirationOptions) {
-        option.addEventListener("focus", () => {
-            clearError(errorPanel, errorMessage);
-        });
-    }
+    customExpirationUnit.addEventListener("change", () => {
+        updateCustomExpiration(
+            customExpirationAmount,
+            customExpirationUnit,
+            customExpirationStatus,
+            expirationOptions,
+            customExpirationToggle,
+            expirationValue,
+            expirationSelected,
+            limits,
+        );
+    });
     deps.window?.addEventListener?.("pagehide", () => {
         pageActive = false;
         hasUnsavedDraft = false;
@@ -479,49 +487,79 @@ function formatDuration(seconds) {
         const days = seconds / SecondsPerDay;
         return `${days} ${days === 1 ? "day" : "days"}`;
     }
-    const hours = Math.round(seconds / SecondsPerHour);
-    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    if (seconds % SecondsPerHour === 0) {
+        const hours = seconds / SecondsPerHour;
+        return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    }
+    if (seconds % SecondsPerMinute === 0) {
+        const minutes = seconds / SecondsPerMinute;
+        return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+    }
+    return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
 }
 
 function expirationRangeMessage(limits) {
     return `Choose an expiration between ${formatDuration(limits.minExpiresInSeconds)} and ${formatDuration(limits.maxExpiresInSeconds)}.`;
 }
 
-function toggleExpirationMenu(toggle, menu) {
-    if (menu.classList.contains("hidden")) {
-        openExpirationMenu(toggle, menu);
-        return;
-    }
-    closeExpirationMenu(toggle, menu);
-}
-
-function openExpirationMenu(toggle, menu) {
-    show(menu);
-    toggle.setAttribute("aria-expanded", "true");
-}
-
-function closeExpirationMenu(toggle, menu) {
-    hide(menu);
-    toggle.setAttribute("aria-expanded", "false");
-}
-
-function selectExpirationOption(option, options, expirationValue, expirationSelected) {
+function selectExpirationOption(option, options, customToggle, customExpiration, expirationValue, expirationSelected) {
     expirationValue.value = option.dataset.expiresInSeconds;
-    expirationSelected.textContent = option.textContent;
+    expirationSelected.textContent = formatDuration(Number(expirationValue.value));
     for (const item of options) {
         item.setAttribute("aria-selected", item === option ? "true" : "false");
     }
+    customToggle.setAttribute("aria-selected", "false");
+    customToggle.setAttribute("aria-expanded", "false");
+    setCustomExpirationEnabled(customExpiration, false);
+    hide(customExpiration);
 }
 
-function focusSelectedExpirationOption(options) {
-    const selected = options.find(option => option.getAttribute("aria-selected") === "true") ?? options[0];
-    focusElement(selected);
+function selectCustomExpiration(options, customToggle, customExpiration, customAmount, customUnit, expirationValue) {
+    for (const item of options) {
+        item.setAttribute("aria-selected", "false");
+    }
+    customToggle.setAttribute("aria-selected", "true");
+    customToggle.setAttribute("aria-expanded", "true");
+    setCustomExpirationEnabled(customExpiration, true);
+    show(customExpiration);
+
+    const seconds = Number(expirationValue.value);
+    const unit = seconds % SecondsPerDay === 0 ? SecondsPerDay : SecondsPerHour;
+    customUnit.value = String(unit);
+    customAmount.value = String(seconds / unit);
+}
+
+function setCustomExpirationEnabled(customExpiration, enabled) {
+    for (const control of customExpiration.querySelectorAll("input, select")) {
+        control.disabled = !enabled;
+    }
 }
 
 function focusAdjacentExpirationOption(options, direction) {
     const currentIndex = options.indexOf(document.activeElement);
     const nextIndex = currentIndex < 0 ? 0 : (currentIndex + direction + options.length) % options.length;
     focusElement(options[nextIndex]);
+}
+
+function updateCustomExpiration(customAmount, customUnit, status, options, customToggle, expirationValue, expirationSelected, limits) {
+    const amount = Number(customAmount.value);
+    const unit = Number(customUnit.value);
+    const seconds = amount * unit;
+    customAmount.min = String(Math.ceil(limits.minExpiresInSeconds / unit));
+    customAmount.max = String(Math.floor(limits.maxExpiresInSeconds / unit));
+    const valid = Number.isInteger(amount) &&
+        customAmount.validity.valid &&
+        Number.isInteger(seconds) &&
+        seconds >= limits.minExpiresInSeconds &&
+        seconds <= limits.maxExpiresInSeconds;
+
+    expirationValue.value = valid ? String(seconds) : "";
+    expirationSelected.textContent = valid ? formatDuration(seconds) : "Invalid duration";
+    status.textContent = valid ? `Custom expiration: ${formatDuration(seconds)}` : expirationRangeMessage(limits);
+    for (const item of options) {
+        item.setAttribute("aria-selected", "false");
+    }
+    customToggle.setAttribute("aria-selected", "true");
 }
 
 if (document.querySelector('[data-page="create-note"]')) {

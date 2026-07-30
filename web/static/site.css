@@ -144,6 +144,19 @@ a {
     gap: var(--space-3);
 }
 
+.note-field {
+    align-items: baseline;
+    grid-template-columns: 1fr auto;
+}
+
+.note-field textarea {
+    grid-column: 1 / -1;
+}
+
+.note-field .size-status {
+    font-size: 0.78rem;
+}
+
 .field-label,
 .helper-text {
     color: var(--color-muted);
@@ -275,77 +288,90 @@ textarea:read-only {
 }
 
 .expiration-picker {
-    align-items: center;
-    display: flex;
-    gap: var(--space-3);
-    justify-content: space-between;
+    display: grid;
+    gap: var(--space-2);
     margin-top: calc(var(--space-3) * -1);
-    position: relative;
 }
 
-.expiration-toggle {
-    align-items: center;
+.expiration-heading {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+}
+
+.expiration-selection {
+    color: var(--color-muted);
+    font-size: 0.8rem;
+}
+
+.expiration-selection strong {
+    color: var(--color-muted-strong);
+    font-weight: 600;
+}
+
+.expiration-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.expiration-option {
     background: rgba(255, 255, 255, 0.48);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-control);
+    border-radius: 7px;
     color: var(--color-muted-strong);
     cursor: pointer;
-    display: inline-flex;
-    gap: var(--space-2);
-    min-height: 2.35rem;
-    padding: 0.45rem 0.75rem;
+    min-height: 2.25rem;
+    min-width: 2.7rem;
+    padding: 0.35rem 0.6rem;
 }
 
-.expiration-toggle:hover,
-.expiration-toggle:focus {
+.expiration-option:hover,
+.expiration-option:focus {
     border-color: rgba(11, 115, 224, 0.55);
     color: var(--color-accent);
     outline: none;
 }
 
-.expiration-menu {
-    -webkit-backdrop-filter: blur(18px) saturate(1.16);
-    backdrop-filter: blur(18px) saturate(1.16);
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-control);
-    box-shadow: 0 1rem 2.5rem rgba(17, 24, 39, 0.14);
-    display: grid;
-    min-width: 13rem;
-    overflow: hidden;
+.expiration-option[aria-selected="true"] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+}
+
+.expiration-custom-option {
+    border-style: dashed;
+    min-width: auto;
+}
+
+.custom-expiration {
+    align-items: center;
+    background: var(--color-background-soft);
+    border-radius: 7px;
+    color: var(--color-muted-strong);
+    display: flex;
+    font-size: 0.9rem;
+    gap: var(--space-2);
     padding: var(--space-2);
-    position: absolute;
-    bottom: calc(100% + var(--space-2));
-    left: 0;
-    z-index: 5;
+}
+
+.custom-expiration input,
+.custom-expiration select {
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: 7px;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.custom-expiration input {
+    min-width: 0;
+    width: 5rem;
 }
 
 .size-status {
     margin: 0;
     text-align: right;
-}
-
-.expiration-option {
-    background: transparent;
-    border: 0;
-    border-radius: 6px;
-    color: var(--color-muted-strong);
-    cursor: pointer;
-    min-height: 2.35rem;
-    padding: 0.45rem 0.65rem;
-    text-align: left;
-}
-
-.expiration-option:hover,
-.expiration-option:focus {
-    background: var(--color-accent-soft);
-    color: var(--color-accent);
-    outline: none;
-}
-
-.expiration-option[aria-selected="true"] {
-    background: rgba(11, 115, 224, 0.16);
-    color: var(--color-text);
 }
 
 .text-action {
@@ -480,6 +506,16 @@ textarea:read-only {
     display: none !important;
 }
 
+.visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
 @media (max-width: 38rem) {
     .center-screen {
         align-items: stretch;
@@ -499,9 +535,9 @@ textarea:read-only {
         min-height: 8.5rem;
     }
 
-    .expiration-picker {
-        align-items: start;
-        flex-direction: column;
+    .custom-expiration {
+        align-items: stretch;
+        flex-wrap: wrap;
     }
 
     .size-status {
