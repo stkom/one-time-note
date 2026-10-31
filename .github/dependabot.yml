@@ -1,12 +1,67 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    cooldown:
-      default-days: 28
     directory: /
     schedule:
-      interval: "yearly"
+      interval: monthly
+    cooldown:
+      default-days: 28
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     assignees:
       - "stkom"
-    reviewers:
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 28
+    groups:
+      go-modules:
+        update-types:
+          - minor
+          - patch
+    assignees:
+      - "stkom"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 28
+    groups:
+      npm-dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    assignees:
+      - "stkom"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    assignees:
+      - "stkom"
+
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 28
+      exclude:
+        - "*one-time-note"
+    groups:
+      compose-images:
+        patterns:
+          - "*"
+    assignees:
       - "stkom"

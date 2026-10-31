@@ -100,14 +100,13 @@ docker compose -f deploy/docker-compose.yml up -d
 ```
 
 Configure the public hostname in `deploy/caddy/Caddyfile`.
-For production, pin the image to a full release tag such as `ghcr.io/stkom/one-time-note:1.0.0`
+For production, pin the image to a full release tag such as `ghcr.io/stkom/one-time-note:1.1.0`
 instead of relying on a mutable tag.
 
 GitHub image publication runs only after the Go, frontend, browser, audit,
 and container checks pass for the exact commit being published.
 If validation fails, publishing is skipped before registry login, push, or attestation.
 Release tags are also rejected unless their commit is reachable from `main`.
-Protect `main` and restrict creation of release tags in the repository settings.
 
 The reverse proxy should terminate TLS, strip or overwrite client-supplied forwarding headers,
 pass the public host and client IP chain, send `https` as the forwarded scheme,
