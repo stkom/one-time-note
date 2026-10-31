@@ -57,7 +57,7 @@ test('applies a custom expiration immediately', async ({page}) => {
     await page.getByLabel('Custom expiration unit').selectOption('3600');
     await page.getByLabel('Custom expiration amount').fill('36');
 
-    await expect(page.locator('#expiration-selected')).toHaveText('36 hours');
+    await expect(page.getByText('Custom expiration: 36 hours')).toBeVisible();
     await page.getByRole('button', {name: 'Save & Encrypt'}).click();
     await expect(page.getByText('Expires after 36 hours')).toBeVisible();
 });

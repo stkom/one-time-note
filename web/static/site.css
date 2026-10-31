@@ -299,16 +299,6 @@ textarea:read-only {
     justify-content: space-between;
 }
 
-.expiration-selection {
-    color: var(--color-muted);
-    font-size: 0.8rem;
-}
-
-.expiration-selection strong {
-    color: var(--color-muted-strong);
-    font-weight: 600;
-}
-
 .expiration-options {
     display: flex;
     flex-wrap: wrap;

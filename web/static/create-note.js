@@ -37,7 +37,6 @@ export function initCreateNotePage(root = document, options = {}) {
     const errorMessage = requiredElement("create-note-error-message", root);
     const expirationValue = requiredElement("expires-in-seconds", root);
     const expirationOptionsRoot = requiredElement("expiration-options", root);
-    const expirationSelected = requiredElement("expiration-selected", root);
     const customExpirationToggle = requiredElement("custom-expiration-toggle", root);
     const customExpiration = requiredElement("custom-expiration", root);
     const customExpirationAmount = requiredElement("custom-expiration-amount", root);
@@ -98,7 +97,7 @@ export function initCreateNotePage(root = document, options = {}) {
         if (!option) {
             return;
         }
-        selectExpirationOption(option, expirationOptions, customExpirationToggle, customExpiration, expirationValue, expirationSelected);
+        selectExpirationOption(option, expirationOptions, customExpirationToggle, customExpiration, expirationValue);
         clearError(errorPanel, errorMessage);
     });
     expirationOptionsRoot.addEventListener("keydown", ev => {
@@ -125,7 +124,6 @@ export function initCreateNotePage(root = document, options = {}) {
             expirationOptions,
             customExpirationToggle,
             expirationValue,
-            expirationSelected,
             limits,
         );
         clearError(errorPanel, errorMessage);
@@ -139,7 +137,6 @@ export function initCreateNotePage(root = document, options = {}) {
             expirationOptions,
             customExpirationToggle,
             expirationValue,
-            expirationSelected,
             limits,
         );
     });
@@ -151,7 +148,6 @@ export function initCreateNotePage(root = document, options = {}) {
             expirationOptions,
             customExpirationToggle,
             expirationValue,
-            expirationSelected,
             limits,
         );
     });
@@ -502,9 +498,8 @@ function expirationRangeMessage(limits) {
     return `Choose an expiration between ${formatDuration(limits.minExpiresInSeconds)} and ${formatDuration(limits.maxExpiresInSeconds)}.`;
 }
 
-function selectExpirationOption(option, options, customToggle, customExpiration, expirationValue, expirationSelected) {
+function selectExpirationOption(option, options, customToggle, customExpiration, expirationValue) {
     expirationValue.value = option.dataset.expiresInSeconds;
-    expirationSelected.textContent = formatDuration(Number(expirationValue.value));
     for (const item of options) {
         item.setAttribute("aria-selected", item === option ? "true" : "false");
     }
@@ -541,7 +536,7 @@ function focusAdjacentExpirationOption(options, direction) {
     focusElement(options[nextIndex]);
 }
 
-function updateCustomExpiration(customAmount, customUnit, status, options, customToggle, expirationValue, expirationSelected, limits) {
+function updateCustomExpiration(customAmount, customUnit, status, options, customToggle, expirationValue, limits) {
     const amount = Number(customAmount.value);
     const unit = Number(customUnit.value);
     const seconds = amount * unit;
@@ -554,7 +549,6 @@ function updateCustomExpiration(customAmount, customUnit, status, options, custo
         seconds <= limits.maxExpiresInSeconds;
 
     expirationValue.value = valid ? String(seconds) : "";
-    expirationSelected.textContent = valid ? formatDuration(seconds) : "Invalid duration";
     status.textContent = valid ? `Custom expiration: ${formatDuration(seconds)}` : expirationRangeMessage(limits);
     for (const item of options) {
         item.setAttribute("aria-selected", "false");
