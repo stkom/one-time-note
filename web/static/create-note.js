@@ -40,6 +40,8 @@ export function initCreateNotePage(root = document, options = {}) {
     const customExpirationToggle = requiredElement("custom-expiration-toggle", root);
     const customExpiration = requiredElement("custom-expiration", root);
     const customExpirationAmount = requiredElement("custom-expiration-amount", root);
+    const customExpirationDecrement = requiredElement("custom-expiration-decrement", root);
+    const customExpirationIncrement = requiredElement("custom-expiration-increment", root);
     const customExpirationUnit = requiredElement("custom-expiration-unit", root);
     const customExpirationStatus = requiredElement("custom-expiration-status", root);
     const sizeStatus = requiredElement("note-size-status", root);
@@ -108,6 +110,18 @@ export function initCreateNotePage(root = document, options = {}) {
             focusAdjacentExpirationOption(choices, direction);
         }
     });
+    const refreshCustomExpiration = () => {
+        updateCustomExpiration(
+            customExpirationAmount,
+            customExpirationUnit,
+            customExpirationStatus,
+            expirationOptions,
+            customExpirationToggle,
+            expirationValue,
+            limits,
+        );
+        updateStepperButtons(customExpirationAmount, customExpirationDecrement, customExpirationIncrement);
+    };
     customExpirationToggle.addEventListener("click", () => {
         selectCustomExpiration(
             expirationOptions,
@@ -117,39 +131,19 @@ export function initCreateNotePage(root = document, options = {}) {
             customExpirationUnit,
             expirationValue,
         );
-        updateCustomExpiration(
-            customExpirationAmount,
-            customExpirationUnit,
-            customExpirationStatus,
-            expirationOptions,
-            customExpirationToggle,
-            expirationValue,
-            limits,
-        );
+        refreshCustomExpiration();
         clearError(errorPanel, errorMessage);
         focusElement(customExpirationAmount);
     });
-    customExpirationAmount.addEventListener("input", () => {
-        updateCustomExpiration(
-            customExpirationAmount,
-            customExpirationUnit,
-            customExpirationStatus,
-            expirationOptions,
-            customExpirationToggle,
-            expirationValue,
-            limits,
-        );
+    customExpirationAmount.addEventListener("input", refreshCustomExpiration);
+    customExpirationUnit.addEventListener("change", refreshCustomExpiration);
+    customExpirationDecrement.addEventListener("click", () => {
+        stepCustomAmount(customExpirationAmount, -1);
+        refreshCustomExpiration();
     });
-    customExpirationUnit.addEventListener("change", () => {
-        updateCustomExpiration(
-            customExpirationAmount,
-            customExpirationUnit,
-            customExpirationStatus,
-            expirationOptions,
-            customExpirationToggle,
-            expirationValue,
-            limits,
-        );
+    customExpirationIncrement.addEventListener("click", () => {
+        stepCustomAmount(customExpirationAmount, 1);
+        refreshCustomExpiration();
     });
     deps.window?.addEventListener?.("pagehide", () => {
         pageActive = false;
@@ -534,8 +528,22 @@ function setCustomUnit(customUnit, unit) {
     }
 }
 
+function stepCustomAmount(customAmount, delta) {
+    const min = Number(customAmount.min);
+    const max = Number(customAmount.max);
+    const current = Number(customAmount.value);
+    const next = Number.isInteger(current) && customAmount.value !== "" ? current + delta : min;
+    customAmount.value = String(Math.min(max, Math.max(min, next)));
+}
+
+function updateStepperButtons(customAmount, decrement, increment) {
+    const amount = Number(customAmount.value);
+    decrement.disabled = customAmount.disabled || amount <= Number(customAmount.min);
+    increment.disabled = customAmount.disabled || amount >= Number(customAmount.max);
+}
+
 function setCustomExpirationEnabled(customExpiration, enabled) {
-    for (const control of customExpiration.querySelectorAll("input")) {
+    for (const control of customExpiration.querySelectorAll("input, button")) {
         control.disabled = !enabled;
     }
 }

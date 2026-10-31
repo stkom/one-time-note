@@ -63,6 +63,24 @@ test('applies a custom expiration immediately', async ({page}) => {
     await expect(page.getByText('Expires after 36 hours')).toBeVisible();
 });
 
+test('steps the custom expiration within the allowed range', async ({page}) => {
+    await page.goto('/');
+    await page.getByRole('option', {name: 'Custom'}).click();
+    const decrease = page.getByRole('button', {name: 'Decrease custom expiration'});
+    const increase = page.getByRole('button', {name: 'Increase custom expiration'});
+
+    await expect(decrease).toBeDisabled();
+    await increase.click();
+    await increase.click();
+    await expect(page.getByLabel('Custom expiration amount')).toHaveValue('3');
+    await expect(page.getByText('Custom expiration: 3 days')).toBeAttached();
+
+    await page.getByLabel('Custom expiration amount').fill('14');
+    await expect(increase).toBeDisabled();
+    await decrease.click();
+    await expect(page.getByText('Custom expiration: 13 days')).toBeAttached();
+});
+
 test('Cancel scrubs the history entry before Back', async ({page, context}) => {
     const noteURL = await createNote(page, 'cancelled browser secret');
     const recipient = await context.newPage();
