@@ -298,6 +298,7 @@ textarea:read-only {
     border-radius: 7px;
     color: var(--color-muted-strong);
     cursor: pointer;
+    flex: 1 1 0;
     min-height: 2.25rem;
     min-width: 2.7rem;
     padding: 0.35rem 0.6rem;
