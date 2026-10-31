@@ -333,8 +333,7 @@ textarea:read-only {
     padding: var(--space-2);
 }
 
-.custom-expiration input,
-.custom-expiration select {
+.custom-expiration input[type="number"] {
     background: #ffffff;
     border: 1px solid var(--color-border);
     border-radius: 7px;
@@ -342,9 +341,62 @@ textarea:read-only {
     padding: 0.35rem 0.5rem;
 }
 
-.custom-expiration input {
+.custom-expiration input[type="number"] {
     min-width: 0;
     width: 5rem;
+}
+
+.unit-toggle {
+    display: inline-flex;
+}
+
+.unit-option {
+    cursor: pointer;
+    display: flex;
+}
+
+.unit-option input {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.unit-option span {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted-strong);
+    display: flex;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.unit-option:first-child span {
+    border-radius: 7px 0 0 7px;
+}
+
+.unit-option:last-child span {
+    border-left: 0;
+    border-radius: 0 7px 7px 0;
+}
+
+.unit-option:hover span,
+.unit-option input:focus-visible + span {
+    color: var(--color-accent);
+}
+
+.unit-option input:focus-visible + span {
+    outline: 2px solid rgba(11, 115, 224, 0.55);
+    outline-offset: 1px;
+}
+
+.unit-option input:checked + span {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
 }
 
 .text-action {

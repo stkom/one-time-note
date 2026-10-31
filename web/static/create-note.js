@@ -520,12 +520,22 @@ function selectCustomExpiration(options, customToggle, customExpiration, customA
 
     const seconds = Number(expirationValue.value);
     const unit = seconds % SecondsPerDay === 0 ? SecondsPerDay : SecondsPerHour;
-    customUnit.value = String(unit);
+    setCustomUnit(customUnit, unit);
     customAmount.value = String(seconds / unit);
 }
 
+function selectedCustomUnit(customUnit) {
+    return Number(customUnit.querySelector("input:checked")?.value);
+}
+
+function setCustomUnit(customUnit, unit) {
+    for (const radio of customUnit.querySelectorAll("input[type=radio]")) {
+        radio.checked = Number(radio.value) === unit;
+    }
+}
+
 function setCustomExpirationEnabled(customExpiration, enabled) {
-    for (const control of customExpiration.querySelectorAll("input, select")) {
+    for (const control of customExpiration.querySelectorAll("input")) {
         control.disabled = !enabled;
     }
 }
@@ -538,7 +548,7 @@ function focusAdjacentExpirationOption(options, direction) {
 
 function updateCustomExpiration(customAmount, customUnit, status, options, customToggle, expirationValue, limits) {
     const amount = Number(customAmount.value);
-    const unit = Number(customUnit.value);
+    const unit = selectedCustomUnit(customUnit);
     const seconds = amount * unit;
     customAmount.min = String(Math.ceil(limits.minExpiresInSeconds / unit));
     customAmount.max = String(Math.floor(limits.maxExpiresInSeconds / unit));

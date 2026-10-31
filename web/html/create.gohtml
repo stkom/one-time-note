@@ -56,10 +56,16 @@
                         <span>Expires in</span>
                         <input type="number" id="custom-expiration-amount" min="1" max="336" step="1" value="1" disabled
                                inputmode="numeric" aria-label="Custom expiration amount"/>
-                        <select id="custom-expiration-unit" aria-label="Custom expiration unit" disabled>
-                            <option value="3600">hours</option>
-                            <option value="86400" selected>days</option>
-                        </select>
+                        <div id="custom-expiration-unit" class="unit-toggle" role="radiogroup" aria-label="Custom expiration unit">
+                            <label class="unit-option">
+                                <input type="radio" name="customExpirationUnit" value="3600" disabled/>
+                                <span>hours</span>
+                            </label>
+                            <label class="unit-option">
+                                <input type="radio" name="customExpirationUnit" value="86400" checked disabled/>
+                                <span>days</span>
+                            </label>
+                        </div>
                         <span id="custom-expiration-status" class="visually-hidden" aria-live="polite"></span>
                     </div>
                 </div>

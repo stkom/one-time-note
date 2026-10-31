@@ -54,7 +54,8 @@ test('applies a custom expiration immediately', async ({page}) => {
     await page.goto('/');
     await page.getByRole('textbox', {name: 'New encrypted note'}).fill('custom expiration secret');
     await page.getByRole('option', {name: 'Custom'}).click();
-    await page.getByLabel('Custom expiration unit').selectOption('3600');
+    await page.getByText('hours', {exact: true}).click();
+    await expect(page.getByRole('radio', {name: 'hours'})).toBeChecked();
     await page.getByLabel('Custom expiration amount').fill('36');
 
     await expect(page.getByText('Custom expiration: 36 hours')).toBeVisible();
