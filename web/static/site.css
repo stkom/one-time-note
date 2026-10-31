@@ -144,19 +144,6 @@ a {
     gap: var(--space-3);
 }
 
-.note-field {
-    align-items: baseline;
-    grid-template-columns: 1fr auto;
-}
-
-.note-field textarea {
-    grid-column: 1 / -1;
-}
-
-.note-field .size-status {
-    font-size: 0.78rem;
-}
-
 .field-label,
 .helper-text {
     color: var(--color-muted);
@@ -359,11 +346,6 @@ textarea:read-only {
     width: 5rem;
 }
 
-.size-status {
-    margin: 0;
-    text-align: right;
-}
-
 .text-action {
     color: var(--color-muted);
     font-weight: 520;
@@ -528,10 +510,6 @@ textarea:read-only {
     .custom-expiration {
         align-items: stretch;
         flex-wrap: wrap;
-    }
-
-    .size-status {
-        text-align: left;
     }
 }
 

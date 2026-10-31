@@ -27,10 +27,9 @@
 
             <form id="create-note-form" class="dialog-section form-stack" data-page="create-note" autocomplete="off">
                 <input type="hidden" id="create-config" data-public-origin="{{.PublicOrigin}}" data-display-name="{{.Brand.DisplayName}}" data-max-note-size="{{.MaxNoteSize}}"/>
-                <label class="field-group note-field" for="note-content">
+                <label class="field-group" for="note-content">
                     <span id="dialog-title" class="section-title">New encrypted note</span>
-                    <p id="note-size-status" class="helper-text size-status" aria-live="polite"></p>
-                    <textarea id="note-content" rows="7" required
+                    <textarea id="note-content" rows="7" required aria-describedby="note-size-status"
                               autocomplete="off" autocapitalize="none" autocorrect="off"
                               spellcheck="false" writingsuggestions="false"
                               placeholder="Type your secret note..."></textarea>
@@ -39,6 +38,7 @@
                     <input type="hidden" id="expires-in-seconds" name="expiresInSeconds" value="86400"/>
                     <div class="expiration-heading">
                         <span id="expiration-label" class="field-label">Expiration</span>
+                        <span id="note-size-status" class="field-label" aria-live="polite"></span>
                     </div>
                     <div id="expiration-options" class="expiration-options" role="listbox" aria-labelledby="expiration-label">
                         <button type="button" class="expiration-option" role="option" aria-selected="false" data-expires-in-seconds="3600" aria-label="1 hour">1h</button>
