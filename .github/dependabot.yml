@@ -48,6 +48,7 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+      semver-minor-days: 28
     assignees:
       - "stkom"
 
