@@ -2,7 +2,7 @@ name: one-time-note
 
 services:
   app:
-    image: ghcr.io/stkom/one-time-note:1.1.0
+    image: ghcr.io/stkom/one-time-note:1.1.2
     cap_drop:
       - ALL
     restart: unless-stopped
